@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 
-namespace VinylCutter
+namespace VinylCutter.Records
 {
 	public enum Visibility { Public, Private }
 

@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using VinylCutter.Records;
 using Xunit;
 
 namespace VinylCutter.Tests

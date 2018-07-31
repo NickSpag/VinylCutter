@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.IO;
 using Mono.Options;
+using VinylCutter.Records;
 
 namespace VinylCutter
 {
