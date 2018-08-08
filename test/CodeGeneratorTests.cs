@@ -11,7 +11,7 @@ namespace VinylCutter.Tests
 
 		string Generate (IEnumerable<RecordInfo> records, string injectCode = "", string globalNamespace = "")
 		{
-			FileInfo file = new FileInfo (records, injectCode: injectCode, globalNamespace: globalNamespace);
+			RecordFileInfo file = new RecordFileInfo (records, injectCode: injectCode, globalNamespace: globalNamespace);
 			CodeGenerator generator = new CodeGenerator (file);
 			return generator.Generate ();
 		}

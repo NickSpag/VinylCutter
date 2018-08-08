@@ -2,15 +2,18 @@
 using System.Linq;
 using VinylCutter.Records;
 using Xunit;
+using VinylCutter.Infrastructure;
 
 namespace VinylCutter.Tests
 {
 	public class ParserTests
 	{
-		FileInfo Parse (string text)
+		RecordFileInfo Parse (string text)
 		{
-			Parser parser = new Parser (text);
-			return parser.Parse ();
+            Parser parser = new Parser(text);
+            RecordsParseWorkload recordParseWorkload = new RecordsParseWorkload ();
+			
+            return parser.Parse (recordParseWorkload) as RecordFileInfo;
 		}
 		
 		[Theory]
@@ -18,7 +21,7 @@ namespace VinylCutter.Tests
 		[InlineData ("public struct SimpleStruct { }", "SimpleStruct", false)]
 		public void SimpleReflectedInfo (string text, string name, bool isClass)
 		{
-			FileInfo file = Parse (text);
+			RecordFileInfo file = Parse (text);
 			Assert.Single (file.Records);
 			Assert.Equal (name, file.Records[0].Name);
 			Assert.Equal (isClass, file.Records[0].IsClass);
@@ -31,7 +34,7 @@ namespace VinylCutter.Tests
 		[Fact]
 		public void PropertiesAreTracked ()
 		{
-			FileInfo file = Parse ("public class SimpleClass { int X { get; } }");
+			RecordFileInfo file = Parse ("public class SimpleClass { int X { get; } }");
 			Assert.Single (file.Records[0].Items);
 			Assert.Equal ("X", file.Records[0].Items[0].Name);
 			Assert.Equal ("Int32", file.Records[0].Items[0].TypeName);
@@ -42,7 +45,7 @@ namespace VinylCutter.Tests
 		[Fact]
 		public void VariablesAreTracked ()
 		{
-			FileInfo file = Parse ("public class SimpleClass { double Y; }");
+			RecordFileInfo file = Parse ("public class SimpleClass { double Y; }");
 
 			Assert.Single (file.Records[0].Items);
 			Assert.Equal ("Y", file.Records[0].Items [0].Name);
@@ -54,7 +57,7 @@ namespace VinylCutter.Tests
 		[Fact]
 		public void IEnumerables ()
 		{
-			FileInfo file = Parse ("public class SimpleClass { List<int> Z; }");
+			RecordFileInfo file = Parse ("public class SimpleClass { List<int> Z; }");
 
 			Assert.Single (file.Records[0].Items);
 			Assert.Equal ("Z", file.Records[0].Items [0].Name);
@@ -65,7 +68,7 @@ namespace VinylCutter.Tests
 		[Fact]
 		public void OtherRecordTypes ()
 		{
-			FileInfo file = Parse (@"
+			RecordFileInfo file = Parse (@"
 public class Element { int X; }
 public class Container { List <Element> E; }
 ");
@@ -80,7 +83,7 @@ public class Container { List <Element> E; }
 		[Fact]
 		public void ClassWithAttributes ()
 		{
-			FileInfo file = Parse (@"
+			RecordFileInfo file = Parse (@"
 [With]
 public class SimpleClass { int X; }
 ");
@@ -93,7 +96,7 @@ public class SimpleClass { int X; }
 		[Fact]
 		public void ItemSpecificWithAttributes ()
 		{
-			FileInfo file = Parse (@"
+			RecordFileInfo file = Parse (@"
 public class SimpleClass { [With] int X; }
 ");
 
@@ -113,7 +116,7 @@ public class SimpleClass { [With] int X; }
 		[Fact]
 		public void Skip ()
 		{
-			FileInfo file = Parse (@"
+			RecordFileInfo file = Parse (@"
 public class SimpleClass { int X; }
 [Skip]
 public class SkippedSimpleClass { int X; }
@@ -128,7 +131,7 @@ public interface SkippedInterface { int X { get; } }
 		[Fact]
 		public void SkipEnums ()
 		{
-			FileInfo file = Parse (@"
+			RecordFileInfo file = Parse (@"
 public enum ParsingConfidence
 {
 	High,
@@ -143,7 +146,7 @@ public enum ParsingConfidence
 		[Fact]
 		public void Inject ()
 		{
-			FileInfo file = Parse (@"public class SimpleClass 
+			RecordFileInfo file = Parse (@"public class SimpleClass 
 {
 	int X; 
 	int Y; 
@@ -159,7 +162,7 @@ public enum ParsingConfidence
 		[Fact]
 		public void InjectTopLevelItems ()
 		{
-			FileInfo file = Parse (@"[Inject]
+			RecordFileInfo file = Parse (@"[Inject]
 public enum Visibility { Public, Private }
 
 public class SimpleClass
@@ -180,7 +183,7 @@ public class SimpleClass
 		[Fact]
 		public void InjectTopLevelItemsWithNamespace ()
 		{
-			FileInfo file = Parse (@"namespace Test
+			RecordFileInfo file = Parse (@"namespace Test
 {
 	[Inject]
 	public enum Visibility { Public, Private }
@@ -205,7 +208,7 @@ public class SimpleClass
 		[Fact]
 		public void Inherit ()
 		{
-			FileInfo file = Parse (@"public interface IFoo {} public class Foo {}
+			RecordFileInfo file = Parse (@"public interface IFoo {} public class Foo {}
 public class SimpleClass : Foo, IFoo
 {
 	int X; 
@@ -218,7 +221,7 @@ public class SimpleClass : Foo, IFoo
 		[Fact]
 		public void Default ()
 		{
-			FileInfo file = Parse (@"public class SimpleClass
+			RecordFileInfo file = Parse (@"public class SimpleClass
 {
 	[Default (""0"")]
 	int X;
@@ -232,7 +235,7 @@ public class SimpleClass : Foo, IFoo
 		[Fact]
 		public void NullDefault ()
 		{
-			FileInfo file = Parse (@"public class SimpleClass
+			RecordFileInfo file = Parse (@"public class SimpleClass
 {
 	[Default (""null"")]
 	string X;
@@ -244,7 +247,7 @@ public class SimpleClass : Foo, IFoo
 		[Fact]
 		public void BoolDefault ()
 		{
-			FileInfo file = Parse (@"public class SimpleClass
+			RecordFileInfo file = Parse (@"public class SimpleClass
 {
 	[Default (""false"")]
 	bool X;
@@ -256,7 +259,7 @@ public class SimpleClass : Foo, IFoo
 		[Fact]
 		public void EmptyStringDefault ()
 		{
-			FileInfo file = Parse (@"public class SimpleClass
+			RecordFileInfo file = Parse (@"public class SimpleClass
 {
 	[Default ("""")]
 	bool X;
@@ -268,17 +271,19 @@ public class SimpleClass : Foo, IFoo
 		[Fact]
 		public void Namespace ()
 		{
-			FileInfo file = Parse (@"namespace Test { public class SimpleClass { } }");
+			RecordFileInfo file = Parse (@"namespace Test { public class SimpleClass { } }");
 			Assert.Equal ("Test", file.GlobalNamespace);
 		}
 
 		[Fact]
 		public void CompileError ()
 		{
-			Parser parser = new Parser (@"public class SimpleClass
-{
-");
-			Assert.Throws<ParseCompileError> (() => parser.Parse ());
+            var uncompileableCode = @"public class SimpleClass { ";
+
+            Parser parser = new Parser(uncompileableCode);
+            RecordsParseWorkload recordParseWorkload = new RecordsParseWorkload();
+
+            Assert.Throws<ParseCompileError> (() => parser.Parse (recordParseWorkload) as RecordFileInfo);
 		}
 	}
 }

@@ -7,10 +7,11 @@ using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Text;
+using VinylCutter.Infrastructure;
 
 namespace VinylCutter.Records
 {
-    public class Parser
+    public class RecordsParseWorkload : IParserWorkflow
     {
         bool HasWith(ISymbol s) => s.GetAttributes().Any(x => x.AttributeClass.Equals(Symbols.WithAttribute));
         bool HasInject(ISymbol s) => s.GetAttributes().Any(x => x.AttributeClass.Equals(Symbols.InjectAttribute));
@@ -18,7 +19,7 @@ namespace VinylCutter.Records
         static bool IsInternalConstruct(ISymbol s) => s.Name.Contains("<") || s.Name.Contains(">");
 
         string Text;
-        string Prelude = @"
+        public string Prelude => @"
 using System;
 using System.Collections.Generic;
 
@@ -44,23 +45,22 @@ public class Notify : System.Attribute { }
         SourceText SourceText;
         string FirstNamespace;
 
-        public Parser(string text)
+        public RecordsParseWorkload()
         {
-            Text = text;
+            
         }
 
-        public FileInfo Parse()
+        public FileInfo Parse(SemanticModel model, CSharpCompilation compilation)
         {
             Records = new List<RecordInfo>();
             FirstNamespace = "";
 
-            SyntaxTree tree = CSharpSyntaxTree.ParseText(Prelude + Text);
-            CSharpCompilation compilation = Compile(tree);
-            Model = compilation.GetSemanticModel(tree);
+            Model = model;
+
             SourceText = Model.SyntaxTree.GetText();
             Symbols = new Symbols(compilation);
 
-            var root = (CompilationUnitSyntax)tree.GetRoot();
+            var root = (CompilationUnitSyntax)Model.SyntaxTree.GetRoot();
             foreach (var c in root.DescendantNodes().OfType<ClassDeclarationSyntax>())
                 HandlePossibleRecord(Model.GetDeclaredSymbol(c));
 
@@ -69,21 +69,7 @@ public class Notify : System.Attribute { }
 
             string injectCode = FindTopLevelInjectItems(root);
 
-            return new FileInfo(Records, injectCode, FirstNamespace);
-        }
-
-        static CSharpCompilation Compile(SyntaxTree tree)
-        {
-            var root = (CompilationUnitSyntax)tree.GetRoot();
-            var mscorlib = MetadataReference.CreateFromFile(typeof(object).Assembly.Location);
-            var compilation = CSharpCompilation.Create("Vinyl").AddReferences(mscorlib).AddSyntaxTrees(tree).WithOptions(new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary));
-
-            var compilerDiagnostics = compilation.GetDiagnostics();
-            var compilerErrors = compilerDiagnostics.Where(i => i.Severity == DiagnosticSeverity.Error);
-            if (compilerErrors.Count() > 0)
-                throw new ParseCompileError(string.Join("\n", compilerErrors.Select(x => x.ToString())));
-
-            return compilation;
+            return new RecordFileInfo(Records, injectCode, FirstNamespace);
         }
 
         string FindTopLevelInjectItems(CompilationUnitSyntax root)

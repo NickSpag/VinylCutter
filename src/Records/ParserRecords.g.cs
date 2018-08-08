@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
+using VinylCutter.Infrastructure;
 
 namespace VinylCutter.Records
 {
@@ -58,13 +59,11 @@ namespace VinylCutter.Records
 		}
 	}
 
-	public partial class FileInfo
+    public partial class RecordFileInfo : FileInfo
 	{
 		public ImmutableArray<RecordInfo> Records { get; }
-		public string InjectCode { get; }
-		public string GlobalNamespace { get; }
-
-		public FileInfo (IEnumerable<RecordInfo> records, string injectCode = "", string globalNamespace = "")
+	
+		public RecordFileInfo (IEnumerable<RecordInfo> records, string injectCode = "", string globalNamespace = "")
 		{
 			Records = ImmutableArray.CreateRange (records ?? Array.Empty<RecordInfo> ());
 			InjectCode = injectCode;

@@ -24,5 +24,6 @@
 
   <ItemGroup>
     <Folder Include="Records\" />
+    <Folder Include="Infrastructure\" />
   </ItemGroup>
 </Project>

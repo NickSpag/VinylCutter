@@ -2,22 +2,26 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using VinylCutter.Infrastructure;
+using System.Xml.Linq;
 
 namespace VinylCutter.Records
 {
-	public class CodeGenerator
+    public class CodeGenerator : BaseCodeGenerator
 	{
-		FileInfo File;
+		new RecordFileInfo File;
 
-		public CodeGenerator (FileInfo file)
+        public CodeGenerator (RecordFileInfo file) : base(file)
 		{
 			File = file;
 		}
 
-		public string Generate ()
-		{
-			CodeWriter writer = new CodeWriter ();
-			GenerateUsings (writer);
+        public override string Generate()
+        {
+            CodeWriter writer = new CodeWriter ();
+			
+            bool hasCollections = File.Records.Any (x => x.Items.Any (y => y.IsCollection));
+            GenerateUsings (writer, hasCollections);
 
 			GenerateNamespaceHeader (writer);
 
@@ -33,45 +37,6 @@ namespace VinylCutter.Records
 			GenerateNamespaceFooter (writer);
 
 			return writer.Generate ();
-		}
-
-		void GenerateTopLevelInjects (CodeWriter writer)
-		{
-			if (!string.IsNullOrEmpty (File.InjectCode))
-			{
-				writer.WriteLineIgnoringIndent (File.InjectCode);
-				writer.WriteLine ();
-			}
-		}
-
-		void GenerateNamespaceHeader (CodeWriter writer)
-		{
-			if (!string.IsNullOrEmpty (File.GlobalNamespace))
-			{
-				writer.WriteLine ($"namespace {File.GlobalNamespace}");
-				writer.WriteLine ("{");
-				writer.Indent ();
-			}
-		}
-
-		void GenerateNamespaceFooter (CodeWriter writer)
-		{
-			if (!string.IsNullOrEmpty (File.GlobalNamespace)) 
-			{
-				writer.Dedent ();
-				writer.WriteLine ("}");
-			}
-		}
-
-		void GenerateUsings (CodeWriter writer)
-		{
-			if (File.Records.Any (x => x.Items.Any (y => y.IsCollection)))
-			{
-				writer.WriteLine ("using System;");
-				writer.WriteLine ("using System.Collections.Generic;");
-				writer.WriteLine ("using System.Collections.Immutable;");
-				writer.WriteLine ();
-			}
 		}
 
 		static void GenerateRecord (RecordInfo record, CodeWriter writer)

@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using VinylCutter.Records;
 using Xunit;
+using VinylCutter.Infrastructure;
 
 namespace VinylCutter.Tests
 {
@@ -37,8 +38,10 @@ namespace Integration
 	}
 }
 ";
-			Parser parser = new Parser (testCode);
-			string output = new CodeGenerator (parser.Parse ()).Generate ();
+            Parser parser = new Parser(testCode);
+            RecordsParseWorkload recordParseWorkload = new RecordsParseWorkload();
+
+            string output = new CodeGenerator (parser.Parse (recordParseWorkload) as RecordFileInfo).Generate ();
 			Assert.Equal (@"using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;

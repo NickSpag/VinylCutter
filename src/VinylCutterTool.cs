@@ -2,6 +2,7 @@
 using System.IO;
 using System.Collections.Generic;
 using VinylCutter.Records;
+using VinylCutter.Infrastructure;
 
 namespace VinylCutter
 {
@@ -66,8 +67,10 @@ namespace VinylCutter
 
 		string ParseOneFile (string text)
 		{
-			var parser = new Parser (text);
-            VinylCutter.Records.FileInfo file = parser.Parse ();
+            Parser parser = new Parser(text);
+            RecordsParseWorkload recordParseWorkload = new RecordsParseWorkload();
+
+            VinylCutter.Records.RecordFileInfo file = parser.Parse (recordParseWorkload) as RecordFileInfo;
 			var codeGenerator = new CodeGenerator (file);
 			return codeGenerator.Generate ();
 		}
